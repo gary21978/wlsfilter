@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     FILE* fin = fopen("input.yuv","rb");
     if (fin == NULL)
     {
-        abort();
+        return -1;
     }
     int ret = fread(buffer, sz*3/2, 1, fin);
     fclose(fin);
@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     FILE* fout = fopen("output.yuv","wb");
     if (fout == NULL)
     {
-        abort();
+        return -1;
     }
     fwrite(buffer, sz*3/2, 1, fout);
     fclose(fout);
