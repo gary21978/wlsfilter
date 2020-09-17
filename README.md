@@ -4,11 +4,13 @@ Reimplementation of the paper "D. Min, S. Choi, J. Lu, B. Ham, K. Sohn, and M. N
 
 
 
+![filtering result](./result.png)
+
+
+
 ## Usage
 
 Two demo codes in MATLAB and C++ are provided.
-
-
 
 ### MATLAB API
 
