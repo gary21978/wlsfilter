@@ -1,8 +1,8 @@
 #include <math.h>
 #include <string.h>
 
-#define MAX_VAL 255
-float BLFKernel[MAX_VAL + 1];
+#define BINNUM 256
+float BLFKernel[BINNUM];
 float *a1_vec, *b1_vec, *c1_vec, *a2_vec, *b2_vec, *c2_vec;
 
 #ifdef MATLAB_MEX_FILE  // if compiled as a MEX-file
@@ -10,7 +10,7 @@ float *a1_vec, *b1_vec, *c1_vec, *a2_vec, *b2_vec, *c2_vec;
 #include <time.h>
 #include "FastGlobalSmoothing.h"
 
-// mex call
+// Fast global smoothing MEX-gateway
 // output_image = FastGlobalSmoothing(input_image, sigma, lambda, solver_iteration);
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
@@ -20,12 +20,28 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgTxt("FGS must be called with 3 arguments.");
     }
   
-    const mxArray *img = prhs[0]; // input images
+    const mxArray *img_input = prhs[0];                          // input images
+    mxArray *img_output = plhs[0] = mxDuplicateArray(img_input); // output images
+    void *ptr_input, *ptr_output;
+    mxClassID category = mxGetClassID(img_input);  
+    switch (category)
+    {
+        case mxUINT8_CLASS: 
+            ptr_input = (unsigned char*)mxGetPr(img_input); 
+            ptr_output = (unsigned char*)mxGetPr(img_output); break;
+        case mxSINGLE_CLASS: 
+            ptr_input = (float*)mxGetPr(img_input);
+            ptr_output = (float*)mxGetPr(img_output); break;
+        case mxDOUBLE_CLASS: 
+            ptr_input = (double*)mxGetPr(img_input);
+            ptr_output = (double*)mxGetPr(img_output); break;
+        default: mexErrMsgTxt("Expected data type to be uint8|single|double.");
+    }
 
     // image resolution
-    int width = mxGetDimensions(img)[1];
-    int height = mxGetDimensions(img)[0];
-    int nChannels = (mxGetNumberOfDimensions(img) > 2)?(mxGetDimensions(img)[2]):1;
+    int width = mxGetDimensions(img_input)[1];
+    int height = mxGetDimensions(img_input)[0];
+    int nChannels = (mxGetNumberOfDimensions(img_input) > 2)?(mxGetDimensions(img_input)[2]):1;
     
     // FGS parameters
     float sigma = mxGetScalar(prhs[1]);
@@ -37,35 +53,68 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("    Sigma = %f\n", sigma);
     mexPrintf("    Lambda = %f\n", lambda);
     mexPrintf("    Iteration = %d\n", solver_iteration);
-    
+
     // Image buffer preperation
     float* image = (float*)malloc(width*height*nChannels*sizeof(float));
-    double* ptr_input = (double*)mxGetPr(img);
-    for (int i = 0; i < height; ++i)
-        for (int j = 0; j < width; ++j)
-            for (int c = 0; c < nChannels; ++c)
-                image[c*height*width + i*width + j] = (float)(ptr_input[j*height + i + c*height*width]);
-    
-    InitFGS(width, height);
 
+    switch (category)
+    {
+        case mxUINT8_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        image[c*height*width + i*width + j] = (float)(((unsigned char*)ptr_input)[j*height + i + c*height*width])/255;
+            break;
+        case mxSINGLE_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        image[c*height*width + i*width + j] = (float)(((float*)ptr_input)[j*height + i + c*height*width]);
+            break;
+        case mxDOUBLE_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        image[c*height*width + i*width + j] = (float)(((double*)ptr_input)[j*height + i + c*height*width]);
+            break;
+    }
+
+    for(int i = 0;i < height*width*nChannels; ++i)
+    {
+        if (image[i]*(image[i] - 1.0) > 0.0)
+            mexErrMsgTxt("Intensity value must be between 0 and 1.");
+    }
+            
+    InitFGS(width, height);
     clock_t m_begin = clock(); // time measurement;
     for (int c = 0; c < nChannels; ++c)
     {
         FastGlobalSmoothing(&image[c*width*height], width, height, sigma, lambda, solver_iteration);
     }
     mexPrintf("Elapsed time is %f seconds.\n", double(clock() - m_begin)/CLOCKS_PER_SEC);
-
     DeinitFGS();
 
-    // output
-    mxArray *image_result = plhs[0] = mxDuplicateArray(img);
-    double* ptr_output = (double*)mxGetPr(image_result);
-
-    for (int i = 0; i < height; ++i)
-        for (int j = 0; j < width; ++j)
-            for (int c = 0; c < nChannels; ++c)
-                ptr_output[j*height + i + c*height*width] = (double)(image[c*height*width + i*width + j]);
-
+    switch (category)
+    {
+        case mxUINT8_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        ((unsigned char*)ptr_output)[j*height + i + c*height*width] = (unsigned char)(image[c*height*width + i*width + j]*255 + 0.5);
+            break;
+        case mxSINGLE_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        ((float*)ptr_output)[j*height + i + c*height*width] = (float)(image[c*height*width + i*width + j]);
+            break;
+        case mxDOUBLE_CLASS:
+            for (int i = 0; i < height; ++i)
+                for (int j = 0; j < width; ++j)
+                    for (int c = 0; c < nChannels; ++c)
+                        ((double*)ptr_output)[j*height + i + c*height*width] = (double)(image[c*height*width + i*width + j]);    
+            break;    
+    }
     free(image);
 }
 #endif // MATLAB_MEX_FILE
@@ -76,9 +125,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
 int PrepareBLFKernel(float sigma)
 {
-    for (int i = 0;i <= MAX_VAL;i++)
+    for (int i = 0;i < BINNUM;i++)
     {
-        float r = i/(float)MAX_VAL/sigma;
+        float r = i/(BINNUM - 1.0)/sigma;
         BLFKernel[i] = exp(-0.5*r*r);     
     }
     return 0;
@@ -99,8 +148,20 @@ int FastGlobalSmoothing(float* image, int width, int height,
                         float sigma, float lambda, int solver_iteration)
 {
     float *pc, *po, *pa_vec, *pb_vec, *pc_vec;
-    float tcr, ncr, tpr, weight, m, lambda_in;
-    int i, j, iter, range;
+    float tcr, ncr, tpr, weight, m, lambda_in, range;
+    int i, j, iter;
+
+    if (image == NULL)
+    {
+        return 1;
+    }
+
+    for (i = 0; i < width*height; ++i)
+    {
+        // restrict the pixel value within 0 and 1
+        if (image[i]*(image[i] - 1.0) > 0.0)
+            return 1;
+    }
 
     switch (solver_iteration)
     {
@@ -113,7 +174,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
     }
 
     // prepare LUT
-    PrepareBLFKernel(sigma); 
+    PrepareBLFKernel(sigma);
 
     for(iter = 0;iter < solver_iteration;iter++) 
     {
@@ -134,7 +195,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
             { 
                 tcr = *pc++;
                 range = (tpr > tcr)?(tpr - tcr):(tcr - tpr);
-                weight = BLFKernel[range];
+                weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
                                 
                 *pa_vec = -lambda_in*weight;
                 *pc_vec = *pa_vec; 
@@ -164,7 +225,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
             po = &image[i*width + 1];
             for (j = 1; j < width; j++) 
             {
-                m = 1.0/(*pb_vec - *pa_vec*(*pc_vec++));
+                m = 1.0/(*pb_vec - *pa_vec*(*pc_vec++)); // TODO: divide by zero risk
                 *pc_vec *= m; 
                 tcr = *pc++;
                 ncr = (tcr - *pa_vec*tpr)*m;
@@ -206,7 +267,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
                 pc += (width - 1);
                 tcr = *pc++;
                 range = (tpr > tcr)?(tpr - tcr):(tcr - tpr);
-                weight = BLFKernel[range];
+                weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
 
                 *pa_vec = -lambda_in*weight;                
                 *pc_vec = *pa_vec; 
@@ -236,7 +297,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
             po = &image[j + width];
             for (i = 1; i < height; i++)
             {
-                m = 1.0/(*pb_vec - *pa_vec*(*pc_vec++));
+                m = 1.0/(*pb_vec - *pa_vec*(*pc_vec++)); // TODO: divide by zero risk
                 *pc_vec *= m;
                 pc += (width - 1);
                 tcr = *pc++;
@@ -264,6 +325,15 @@ int FastGlobalSmoothing(float* image, int width, int height,
             }
         }
         lambda_in *= 0.25;
+    }
+
+    // clip the value
+    for (i = 0; i < width*height; ++i)
+    {
+        if(image[i] < 0.0)
+            image[i] = 0.0;
+        if(image[i] > 1.0)
+            image[i] = 1.0;
     }
     return 0;
 }
