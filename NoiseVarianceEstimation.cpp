@@ -60,6 +60,11 @@ int BoxFilter(float* dst, const float* src, int width, int height, int r)
     return 0;
 }
 
+/*
+ *   Estimate noise variance using 3x3 mask followed by a summation over a local neighborhood
+ *   Immerkaer, John. "Fast Noise Variance Estimation." Computer Vision and Image Understanding 64.2 (1996): 300-302.
+ */
+
 float NoiseVarianceEstimation(float* variance, const float* img, int width, int height, int r)
 {
     float * convolution = (float*)malloc(width*height*sizeof(float));
@@ -99,7 +104,7 @@ float NoiseVarianceEstimation(float* variance, const float* img, int width, int 
         h2 = (i < r)?(r - 1 + i):((i >= height - r)?(height + r - i - 2):(2*r - 1));
         for (int j = 0; j < width; ++j)
         {
-            w2 = (j < r)?(r - 1 + j):((j >= width - r)?(width + r - i - 2):(2*r - 1));
+            w2 = (j < r)?(r - 1 + j):((j >= width - r)?(width + r - j - 2):(2*r - 1));
             variance[i*width + j] *= NORMALIZE_CONSTANT/(double)w2/(double)h2;
             variance[i*width + j] *= variance[i*width + j];
             total_variance += convolution[i*width + j];
