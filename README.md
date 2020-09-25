@@ -10,29 +10,27 @@ Reimplementation of the paper "D. Min, S. Choi, J. Lu, B. Ham, K. Sohn, and M. N
 
 ## Usage
 
-Two demo codes in MATLAB and C++ are provided.
+Two demo codes in MATLAB and C are provided.
 
 ### MATLAB API
 
-- output_image = FastGlobalSmoothing(input_image, sigma, lambda)
-- output_image = FastGlobalSmoothing(input_image, sigma, lambda, solver_iteration)
-  
 
-**Platform**       **Binary MEX File Extension**
-Linux (64-bit)     .mexa64
-Windows (64-bit)   .mexw64
+output_image = FastGlobalSmoothing(input_image, sigma, lambda)
 
-### C++ API
+- The input image can be one of these types: **uint8**, **uint16**, **single** or **double**.
+- The output image has the same size and data type as the input image.
+- If sigma value is negative or zero, then an *adaptive strategy* based on local noise variance estimation will be adopted.
+- The binary MEX files for the operation system Linux 64-bit and Windows 64-bit are provided, with extensions mexa64 and mexw64 respectively.
+
+### C API
 
 int FastGlobalSmoothing(float* image, int width, int height, float sigma, float lambda, int solver_iteration = 3)
 
+- The elements of **single channel** data *image* are arranged in **row-major** order.
 
-
-The elements of **single channel** data *image* are arranged in **row-major** order.
-
-The output image buffer **overwrites** the input image buffer.
-
-
+- The output image buffer **overwrites** the input image buffer.
+- The value of input image is assumed to be in the range [0, 1].
+  
 
 ## License
 
