@@ -39,7 +39,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         case mxDOUBLE_CLASS: 
             ptr_input = (double*)mxGetPr(img_input);
             ptr_output = (double*)mxGetPr(img_output); break;
-        default: mexErrMsgTxt("Expected data type to be uint8|uint16|single|double.");
+        default: mexErrMsgTxt("Expected input image to be one of these types:\n\nuint8, uint16, single, double");
     }
 
     // image resolution
@@ -201,7 +201,7 @@ int FastGlobalSmoothing(float* image, int width, int height,
     {
         variance = (float*)malloc(width*height*sizeof(float));
         float var = NoiseVarianceEstimation(variance, image, width, height, 10);
-        printf("-> suggested sigma value: %f\n", 1.95*sqrt(var));
+        printf("recommended sigma value: %f\n", 1.95*sqrt(var));
     }
 
     for(iter = 0;iter < solver_iteration;iter++) 
