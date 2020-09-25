@@ -1,5 +1,6 @@
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 #define BINNUM 256
 float BLFKernel[BINNUM];
@@ -148,6 +149,8 @@ int PrepareBLFKernel(float sigma)
     return 0;
 }
 
+float NoiseVarianceEstimation(float* variance, const float* img, int width, int height, int r);
+
 /*
  *    Fast Global Smoothing Routine
  *    
@@ -188,8 +191,18 @@ int FastGlobalSmoothing(float* image, int width, int height,
         //lambda_in = 1.5*lambda*pow(4.0, solver_iteration - 1)/(pow(4.0, solver_iteration) - 1.0);break;
     }
 
-    // prepare LUT
-    PrepareBLFKernel(sigma);
+    float* variance;
+    if (sigma > 0.0)
+    {
+        // prepare LUT
+        PrepareBLFKernel(sigma);
+    }
+    else
+    {
+        variance = (float*)malloc(width*height*sizeof(float));
+        float var = NoiseVarianceEstimation(variance, image, width, height, 10);
+        printf("-> suggested sigma value: %f\n", 1.95*sqrt(var));
+    }
 
     for(iter = 0;iter < solver_iteration;iter++) 
     {
@@ -210,7 +223,15 @@ int FastGlobalSmoothing(float* image, int width, int height,
             { 
                 tcr = *pc++;
                 range = (tpr > tcr)?(tpr - tcr):(tcr - tpr);
-                weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
+
+                if (sigma > 0.0)
+                {
+                    weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
+                }
+                else 
+                {
+                    weight = exp(-0.5*range*range/3.8025/(variance[i*width + j] + 1e-12)/(sigma - 1e-12)/(sigma - 1e-12));
+                }
                                 
                 *pa_vec = -lambda_in*weight;
                 *pc_vec = *pa_vec; 
@@ -282,7 +303,15 @@ int FastGlobalSmoothing(float* image, int width, int height,
                 pc += (width - 1);
                 tcr = *pc++;
                 range = (tpr > tcr)?(tpr - tcr):(tcr - tpr);
-                weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
+
+                if (sigma > 0.0)
+                {
+                    weight = (range > 1.0)?0.0:BLFKernel[(unsigned int)(range*(BINNUM - 1.0) + 0.5)];
+                }
+                else 
+                {
+                    weight = exp(-0.5*range*range/3.8025/(variance[i*width + j] + 1e-12)/(sigma - 1e-12)/(sigma - 1e-12));
+                }
 
                 *pa_vec = -lambda_in*weight;                
                 *pc_vec = *pa_vec; 
@@ -340,6 +369,11 @@ int FastGlobalSmoothing(float* image, int width, int height,
             }
         }
         lambda_in *= 0.25;
+    }
+
+    if (sigma <= 0.0)
+    {
+        free(variance);
     }
 
     // clip the value
