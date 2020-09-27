@@ -1,6 +1,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define BINNUM 256
 float BLFKernel[BINNUM];
@@ -28,11 +29,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     switch (category)
     {
         case mxUINT8_CLASS: 
-            ptr_input = (u_int8_t*)mxGetPr(img_input); 
-            ptr_output = (u_int8_t*)mxGetPr(img_output); break;
+            ptr_input = (uint8_t*)mxGetPr(img_input); 
+            ptr_output = (uint8_t*)mxGetPr(img_output); break;
         case mxUINT16_CLASS: 
-            ptr_input = (u_int16_t*)mxGetPr(img_input); 
-            ptr_output = (u_int16_t*)mxGetPr(img_output); break;    
+            ptr_input = (uint16_t*)mxGetPr(img_input); 
+            ptr_output = (uint16_t*)mxGetPr(img_output); break;    
         case mxSINGLE_CLASS:
             ptr_input = (float*)mxGetPr(img_input);
             ptr_output = (float*)mxGetPr(img_output); break;
@@ -67,13 +68,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for (int i = 0; i < height; ++i)
                 for (int j = 0; j < width; ++j)
                     for (int c = 0; c < nChannels; ++c)
-                        image[c*height*width + i*width + j] = (float)(((u_int8_t*)ptr_input)[j*height + i + c*height*width])/255;
+                        image[c*height*width + i*width + j] = (float)(((uint8_t*)ptr_input)[j*height + i + c*height*width])/255;
             break;
         case mxUINT16_CLASS:
             for (int i = 0; i < height; ++i)
                 for (int j = 0; j < width; ++j)
                     for (int c = 0; c < nChannels; ++c)
-                        image[c*height*width + i*width + j] = (float)(((u_int16_t*)ptr_input)[j*height + i + c*height*width])/65535;
+                        image[c*height*width + i*width + j] = (float)(((uint16_t*)ptr_input)[j*height + i + c*height*width])/65535;
             break;
         case mxSINGLE_CLASS:
             for (int i = 0; i < height; ++i)
@@ -110,13 +111,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             for (int i = 0; i < height; ++i)
                 for (int j = 0; j < width; ++j)
                     for (int c = 0; c < nChannels; ++c)
-                        ((u_int8_t*)ptr_output)[j*height + i + c*height*width] = (u_int8_t)(image[c*height*width + i*width + j]*255 + 0.5);
+                        ((uint8_t*)ptr_output)[j*height + i + c*height*width] = (uint8_t)(image[c*height*width + i*width + j]*255 + 0.5);
             break;
         case mxUINT16_CLASS:
             for (int i = 0; i < height; ++i)
                 for (int j = 0; j < width; ++j)
                     for (int c = 0; c < nChannels; ++c)
-                        ((u_int16_t*)ptr_output)[j*height + i + c*height*width] = (u_int16_t)(image[c*height*width + i*width + j]*65535 + 0.5);
+                        ((uint16_t*)ptr_output)[j*height + i + c*height*width] = (uint16_t)(image[c*height*width + i*width + j]*65535 + 0.5);
             break;
         case mxSINGLE_CLASS:
             for (int i = 0; i < height; ++i)
