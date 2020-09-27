@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
     int width, height, bpp;
     if (argc == 1)
     {
-        printf("Usage: %s input [output] [sigma] [lamnda]\n",argv[0]);
+        printf("Usage: %s input [output] [sigma] [lambda]\n",argv[0]);
         return -1;
     }
     uint8_t* image = stbi_load(argv[1], &width, &height, &bpp, 0);
