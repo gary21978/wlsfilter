@@ -105,6 +105,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Elapsed time is %f seconds.\n", double(clock() - m_begin)/CLOCKS_PER_SEC);
     DeinitFGS();
 
+    // output conversion
     switch (category)
     {
         case mxUINT8_CLASS:
