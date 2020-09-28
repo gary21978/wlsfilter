@@ -1,4 +1,3 @@
-#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -45,9 +44,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int width = mxGetDimensions(img_input)[1];
     int height = mxGetDimensions(img_input)[0];
     int nChannels = (mxGetNumberOfDimensions(img_input) > 2)?(mxGetDimensions(img_input)[2]):1;
-    
+
     // Guided filter parameters
-    int radius = mxGetScalar(prhs[1]);
+    int radius = mxGetScalar(prhs[1]);  // TODO: check integer type
     float epsilon = mxGetScalar(prhs[2]);
 
     mexPrintf("Image resolution: %d x %d x %d\n", width, height, nChannels);
@@ -224,6 +223,7 @@ int GuidedFilter(float* image, int width, int height, int radius, float epsilon)
         buffer1[px] = image[px]*image[px];
     }
     BoxFilter(buffer2, buffer1, width, height, radius);
+
     for (px = 0; px < sz; ++px)
     {
         buffer2[px] /= N[px];  // buffer2:mean_II
@@ -233,6 +233,7 @@ int GuidedFilter(float* image, int width, int height, int radius, float epsilon)
     {
         buffer1[px] /= N[px];  // buffer1:meanI
     }
+
     for (px = 0; px < sz; ++px)
     {
         buffer2[px] -= buffer1[px]*buffer1[px];  // buffer2: varI
@@ -275,6 +276,7 @@ int InitGF(int width, int height, int radius)
     buffer1 = (float*)malloc(sz*sizeof(float));
     buffer2 = (float*)malloc(sz*sizeof(float));
     buffer3 = (float*)malloc(sz*sizeof(float));
+
     // size of each local patch
     float* ones = (float*)malloc(sz*sizeof(float));
     for (int px = 0;px < sz;++px)
