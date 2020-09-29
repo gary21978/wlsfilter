@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
     {
         for (int c = 0; c < bpp; ++c)
         {
-            channel[c*sz + px] = (float)image[bpp*px + c];
+            channel[c*sz + px] = image[bpp*px + c]/255.0f;
         }
     }
 
@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     {
         for (int c = 0; c < bpp; ++c)
         {
-            image[bpp*px + c] = (u_int8_t)channel[c*sz + px];
+            image[bpp*px + c] = (u_int8_t)(channel[c*sz + px]*255.0f + 0.5f);
         }
     }
 
